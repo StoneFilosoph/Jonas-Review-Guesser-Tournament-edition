@@ -22,6 +22,7 @@ Jonas Review Guesser is a Chrome extension that turns Steam into a review guessi
 ## Limitations
 
 It is a very simple application with many limitations:
+- **Bug: ** Current version only works when your Steam is set to English.
 - Somewhat hinders your normal Steam browsing experience (you need to manually turn the Plugin off).
 - The database of appIDs is not automatically updated so the newer titles might not be included.
 - Sometimes the extension brings you to a Steam page that is not or no longer available in your region.
@@ -55,7 +56,10 @@ It is not my plan to work on this too much more so if you'd like to see these li
   - The folder that includes `manifest.json`.
 - Confirm that **Jonas Review Guesser** appears in the list of extensions.
 
-### Step 3: Verify It Works
+### Step 3: Set Steam language to ENGLISH!
+- **Set your language to "English"!** This is crucial for the current version to work.
+
+### Step 4: Verify It Works
 
 - Make sure the extension is **enabled** (toggle is on).
 - Open any Steam store page:
