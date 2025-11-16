@@ -116,6 +116,17 @@ do the following:
 
 ---
 
+## Tournament Mode
+
+![preview image](images/SeededUi.png)
+
+###This version 1.0.0 is complete AI slop 
+
+- Adds ability to generate and share seeds, so you should be able to play with your friends or create Tournaments. 
+
+- Probably I'll fix bugs, but most likely not, see updates. 
+
+
 ## License
 
 - Short summary:
