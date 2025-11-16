@@ -62,6 +62,7 @@
 	let currentRNG = null;
 	let gameCounter = 0;
 	let maxGames = null; // null = unlimited
+	let gameMode = null; // null = both modes, "pure" = raw only, "smart" = balanced only
 
 	/**
 	 * Hash a string to a 32-bit number for use as seed
@@ -121,9 +122,10 @@
 	 * Initialize or update the global RNG with a seed
 	 * @param {string|number} seed - Can be string or number, optionally with ":LIMIT"
 	 * @param {number|null} limit - Optional game limit (overrides seed string limit)
+	 * @param {string|null} mode - Optional game mode ("pure", "smart", or null for both)
 	 * @returns {string} The seed string that was set (with limit if applicable)
 	 */
-	function setSeed(seed, limit) {
+	function setSeed(seed, limit, mode) {
 		let seedString;
 		let seedNumber;
 		let gameLimit = limit;
@@ -151,19 +153,25 @@
 		currentRNG = new SeededRNG(seedNumber);
 		maxGames = gameLimit;
 		gameCounter = 0; // Reset counter when seed changes
+		
+		// Set game mode if provided
+		if (mode !== undefined) {
+			gameMode = mode;
+		}
 
 		// Store in localStorage
 		try {
 			localStorage.setItem('reviewguesser:seed', seedString);
 			localStorage.setItem('reviewguesser:maxgames', gameLimit === null ? '' : String(gameLimit));
 			localStorage.setItem('reviewguesser:gamecount', '0');
+			localStorage.setItem('reviewguesser:gamemode', gameMode === null ? '' : String(gameMode));
 		} catch (e) {
 			console.warn('[ext] Failed to save seed to localStorage', e);
 		}
 
 		// Dispatch event so UI can update
 		window.dispatchEvent(new CustomEvent('ext:seedchanged', {
-			detail: { seed: seedString, maxGames: gameLimit, gameCount: 0 }
+			detail: { seed: seedString, maxGames: gameLimit, gameCount: 0, gameMode: gameMode }
 		}));
 
 		return gameLimit === null ? seedString : `${seedString}:${gameLimit}`;
@@ -187,17 +195,22 @@
 			let savedSeed = null;
 			let savedMaxGames = null;
 			let savedGameCount = 0;
+			let savedGameMode = null;
 			
 			try {
 				savedSeed = localStorage.getItem('reviewguesser:seed');
 				const maxGamesStr = localStorage.getItem('reviewguesser:maxgames');
 				const gameCountStr = localStorage.getItem('reviewguesser:gamecount');
+				const gameModeStr = localStorage.getItem('reviewguesser:gamemode');
 				
 				if (maxGamesStr && maxGamesStr !== '') {
 					savedMaxGames = parseInt(maxGamesStr, 10);
 				}
 				if (gameCountStr) {
 					savedGameCount = parseInt(gameCountStr, 10) || 0;
+				}
+				if (gameModeStr && gameModeStr !== '') {
+					savedGameMode = gameModeStr;
 				}
 			} catch (e) {
 				// Ignore
@@ -216,6 +229,7 @@
 				currentRNG = new SeededRNG(seedNumber);
 				maxGames = savedMaxGames;
 				gameCounter = savedGameCount;
+				gameMode = savedGameMode;
 				
 				// CRITICAL FIX: Advance RNG state based on game counter
 				// This ensures each game gets different random values
@@ -234,10 +248,11 @@
 	/**
 	 * Reset seed (generate new random one)
 	 * @param {number|null} limit - Optional game limit
+	 * @param {string|null} mode - Optional game mode
 	 * @returns {string} New seed string
 	 */
-	function resetSeed(limit) {
-		return setSeed(generateRandomSeedString(), limit);
+	function resetSeed(limit, mode) {
+		return setSeed(generateRandomSeedString(), limit, mode);
 	}
 
 	/**
@@ -317,7 +332,32 @@
 		}
 
 		window.dispatchEvent(new CustomEvent('ext:seedchanged', {
-			detail: { seed: currentSeed, maxGames: limit, gameCount: gameCounter }
+			detail: { seed: currentSeed, maxGames: limit, gameCount: gameCounter, gameMode: gameMode }
+		}));
+	}
+
+	/**
+	 * Get current game mode
+	 * @returns {string|null} "pure", "smart", or null for both
+	 */
+	function getGameMode() {
+		return gameMode;
+	}
+
+	/**
+	 * Set game mode without changing seed
+	 * @param {string|null} mode - Game mode ("pure", "smart", or null for both)
+	 */
+	function setGameMode(mode) {
+		gameMode = mode;
+		try {
+			localStorage.setItem('reviewguesser:gamemode', mode === null ? '' : String(mode));
+		} catch (e) {
+			console.warn('[ext] Failed to save game mode', e);
+		}
+
+		window.dispatchEvent(new CustomEvent('ext:seedchanged', {
+			detail: { seed: currentSeed, maxGames: maxGames, gameCount: gameCounter, gameMode: mode }
 		}));
 	}
 
@@ -334,6 +374,8 @@
 	ns.isGameLimitReached = isGameLimitReached;
 	ns.resetGameCounter = resetGameCounter;
 	ns.setMaxGames = setMaxGames;
+	ns.getGameMode = getGameMode;
+	ns.setGameMode = setGameMode;
 	ns.parseSeedWithLimit = parseSeedWithLimit;
 })(window);
 

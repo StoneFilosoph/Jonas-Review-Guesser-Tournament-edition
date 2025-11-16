@@ -167,8 +167,20 @@
 		span.textContent = label;
 		a.appendChild(span);
 
-		// Update button state based on limit
+		// Update button state based on limit and game mode
 		const updateButtonState = () => {
+			// Check if this button's mode matches the selected game mode
+			const currentGameMode = ns.getGameMode ? ns.getGameMode() : null;
+			
+			// Hide button if game mode is set and doesn't match this button's mode
+			if (currentGameMode !== null && currentGameMode !== mode) {
+				a.style.display = 'none';
+				return;
+			} else {
+				a.style.display = '';
+			}
+
+			// Update disabled state based on game limit
 			if (ns.isGameLimitReached && ns.isGameLimitReached()) {
 				a.classList.add('ext-disabled');
 				a.setAttribute('aria-disabled', 'true');
@@ -182,7 +194,7 @@
 
 		updateButtonState();
 
-		// Listen for game count changes
+		// Listen for game count and seed changes (including mode changes)
 		window.addEventListener('ext:gamecountchanged', updateButtonState);
 		window.addEventListener('ext:seedchanged', updateButtonState);
 

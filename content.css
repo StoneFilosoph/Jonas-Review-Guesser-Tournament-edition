@@ -144,7 +144,8 @@
 	background: rgba(0, 0, 0, 0.4);
 }
 
-.ext-seed-limit {
+.ext-seed-limit,
+.ext-seed-mode {
 	padding: 6px 10px;
 	border: 1px solid rgba(255, 255, 255, 0.3);
 	border-radius: 4px;
@@ -156,12 +157,14 @@
 	transition: all 0.15s ease;
 }
 
-.ext-seed-limit:hover {
+.ext-seed-limit:hover,
+.ext-seed-mode:hover {
 	background: rgba(0, 0, 0, 0.5);
 	border-color: rgba(255, 255, 255, 0.4);
 }
 
-.ext-seed-limit:focus {
+.ext-seed-limit:focus,
+.ext-seed-mode:focus {
 	outline: none;
 	border-color: rgba(102, 192, 244, 0.8);
 }
@@ -199,7 +202,8 @@
 	flex-wrap: wrap;
 }
 
-.ext-game-counter {
+.ext-game-counter,
+.ext-game-mode {
 	font-weight: 600;
 	color: rgba(255, 255, 255, 0.9);
 	background: rgba(0, 0, 0, 0.2);

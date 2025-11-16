@@ -8,6 +8,8 @@
 	const getMaxGames = ns.getMaxGames;
 	const resetGameCounter = ns.resetGameCounter;
 	const setMaxGames = ns.setMaxGames;
+	const getGameMode = ns.getGameMode;
+	const setGameMode = ns.setGameMode;
 
 	/**
 	 * Save current UI state to preserve user input during page updates
@@ -143,10 +145,12 @@
 		const currentSeed = getCurrentSeed() || 'Loading...';
 		const gameCount = getGameCounter ? getGameCounter() : 0;
 		const maxGames = getMaxGames ? getMaxGames() : null;
+		const gameMode = getGameMode ? getGameMode() : null;
 		
 		// Use draft seed if available, otherwise current seed
 		const displaySeed = draftSeed || currentSeed;
 		const limitDisplay = maxGames === null ? 'Unlimited' : maxGames;
+		const modeDisplay = gameMode === 'pure' ? 'Raw' : gameMode === 'smart' ? 'Balanced' : 'Both';
 
 		seedUI.innerHTML = `
 			<div class="ext-seed-controls">
@@ -167,6 +171,11 @@
 					<option value="20" ${maxGames === 20 ? 'selected' : ''}>20 games</option>
 					<option value="50" ${maxGames === 50 ? 'selected' : ''}>50 games</option>
 				</select>
+				<select class="ext-seed-mode" title="Game mode">
+					<option value="">Both modes</option>
+					<option value="pure" ${gameMode === 'pure' ? 'selected' : ''}>Raw only</option>
+					<option value="smart" ${gameMode === 'smart' ? 'selected' : ''}>Balanced only</option>
+				</select>
 				<button type="button" class="ext-seed-btn ext-seed-apply" title="Apply seed">
 					Apply
 				</button>
@@ -186,6 +195,8 @@
 			<div class="ext-seed-info">
 				<span class="ext-game-counter">Game <span class="ext-game-count">${gameCount}</span> / <span class="ext-game-limit">${limitDisplay}</span></span>
 				<span class="ext-seed-separator">•</span>
+				<span class="ext-game-mode">Mode: <span class="ext-mode-display">${modeDisplay}</span></span>
+				<span class="ext-seed-separator">•</span>
 				<span>Share the seed with friends to compete!</span>
 			</div>
 		`;
@@ -196,6 +207,7 @@
 		// Add event listeners
 		const input = seedUI.querySelector('.ext-seed-input');
 		const limitSelect = seedUI.querySelector('.ext-seed-limit');
+		const modeSelect = seedUI.querySelector('.ext-seed-mode');
 		const applyBtn = seedUI.querySelector('.ext-seed-apply');
 		const randomBtn = seedUI.querySelector('.ext-seed-random');
 		const copyBtn = seedUI.querySelector('.ext-seed-copy');
@@ -211,7 +223,9 @@
 			if (newSeed) {
 				const limitValue = limitSelect.value;
 				const limit = limitValue === '' ? null : parseInt(limitValue, 10);
-				setSeed(newSeed, limit);
+				const modeValue = modeSelect.value;
+				const mode = modeValue === '' ? null : modeValue;
+				setSeed(newSeed, limit, mode);
 				clearDraftState(); // Clear draft after successful application
 				showFeedback(seedUI, 'Seed applied! Refreshing page...');
 				setTimeout(() => {
@@ -229,6 +243,15 @@
 			showFeedback(seedUI, 'Game limit updated!');
 		});
 
+		// Mode selector change
+		modeSelect.addEventListener('change', () => {
+			const modeValue = modeSelect.value;
+			const mode = modeValue === '' ? null : modeValue;
+			setGameMode(mode);
+			updateGameMode();
+			showFeedback(seedUI, 'Game mode updated!');
+		});
+
 		// Enter key in input
 		input.addEventListener('keypress', (e) => {
 			if (e.key === 'Enter') {
@@ -240,7 +263,9 @@
 		randomBtn.addEventListener('click', () => {
 			const limitValue = limitSelect.value;
 			const limit = limitValue === '' ? null : parseInt(limitValue, 10);
-			const newSeed = resetSeed(limit);
+			const modeValue = modeSelect.value;
+			const mode = modeValue === '' ? null : modeValue;
+			const newSeed = resetSeed(limit, mode);
 			input.value = newSeed;
 			clearDraftState(); // Clear draft after generating new seed
 			showFeedback(seedUI, 'New seed generated! Refreshing page...');
@@ -383,6 +408,30 @@
 	}
 
 	/**
+	 * Update game mode display
+	 */
+	function updateGameMode() {
+		// Ensure RNG is initialized (loads state from localStorage)
+		if (ns.getRNG) {
+			ns.getRNG();
+		}
+
+		const modeDisplayEl = document.querySelector('.ext-mode-display');
+		
+		if (modeDisplayEl && getGameMode) {
+			const mode = getGameMode();
+			modeDisplayEl.textContent = mode === 'pure' ? 'Raw' : mode === 'smart' ? 'Balanced' : 'Both';
+		}
+
+		// Update mode selector
+		const modeSelect = document.querySelector('.ext-seed-mode');
+		if (modeSelect && getGameMode) {
+			const mode = getGameMode();
+			modeSelect.value = mode === null ? '' : String(mode);
+		}
+	}
+
+	/**
 	 * Update seed display
 	 */
 	function updateSeedDisplay() {
@@ -399,6 +448,7 @@
 			}
 		}
 		updateGameCounter();
+		updateGameMode();
 	}
 
 	/**
@@ -407,6 +457,7 @@
 	function updateSeedUI() {
 		updateSeedDisplay();
 		updateGameCounter();
+		updateGameMode();
 	}
 
 	/**

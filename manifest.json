@@ -1,6 +1,6 @@
 {
 	"name": "Jonas Review Guesser - Tournament Edition",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"manifest_version": 3,
 	"description": "Turns Steam page into a guessing game. Now with competitive seed-based mode! Tournament Edition adds a competitive mode where you can compete with your friends to see who can guess the most reviews correctly.",
   "content_scripts": [
