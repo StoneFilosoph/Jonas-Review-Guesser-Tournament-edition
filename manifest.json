@@ -1,22 +1,24 @@
 {
-  "name": "Jonas Review Guesser",
-  "version": "1.1.0",
-  "manifest_version": 3,
-  "description": "Turns Steam page into a guessing game.",
+	"name": "Jonas Review Guesser - Tournament Edition",
+	"version": "1.0.0",
+	"manifest_version": 3,
+	"description": "Turns Steam page into a guessing game. Now with competitive seed-based mode! Tournament Edition adds a competitive mode where you can compete with your friends to see who can guess the most reviews correctly.",
   "content_scripts": [
     {
       "matches": [
         "*://store.steampowered.com/app/*"
       ],
-      "js": [
-        "src/siteRules.js",
-        "src/utils.js",
-        "src/pageDetection.js",
-        "src/reviewCounts.js",
-        "src/guessingGame.js",
-        "src/nextGame.js",
-        "src/main.js"
-      ],
+	"js": [
+		"src/siteRules.js",
+		"src/utils.js",
+		"src/seededRandom.js",
+		"src/pageDetection.js",
+		"src/reviewCounts.js",
+		"src/guessingGame.js",
+		"src/nextGame.js",
+		"src/seedUI.js",
+		"src/main.js"
+	],
       "css": ["content.css"],
       "run_at": "document_start"
     }

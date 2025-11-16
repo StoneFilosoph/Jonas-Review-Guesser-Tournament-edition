@@ -1,23 +1,30 @@
 (function (root) {
   const ns = (root.ReviewGuesser = root.ReviewGuesser || {});
 
-  function run() {
-    if (ns.hideAllSteamReviewCounts) {
-      ns.hideAllSteamReviewCounts();
-    }
+	function run() {
+		// Initialize seed from URL if present (first time only)
+		if (!window.__extSeedInitialized) {
+			ns.initializeSeedFromURL && ns.initializeSeedFromURL();
+			window.__extSeedInitialized = true;
+		}
 
-    if (ns.isUnavailableRegionPage && ns.isUnavailableRegionPage()) {
-      ns.installNextGameButtonOnOops &&
-        ns.installNextGameButtonOnOops();
-      return;
-    }
+		if (ns.hideAllSteamReviewCounts) {
+			ns.hideAllSteamReviewCounts();
+		}
 
-    ns.installNextGameButton && ns.installNextGameButton();
-    ns.injectSteamGuessingGame && ns.injectSteamGuessingGame();
-  }
+		if (ns.isUnavailableRegionPage && ns.isUnavailableRegionPage()) {
+			ns.installNextGameButtonOnOops &&
+				ns.installNextGameButtonOnOops();
+			return;
+		}
 
-  // Initial run
-  run();
+		ns.installNextGameButton && ns.installNextGameButton();
+		ns.injectSeedUI && ns.injectSeedUI();
+		ns.injectSteamGuessingGame && ns.injectSteamGuessingGame();
+	}
+
+	// Initial run
+	run();
 
   // React to DOM mutations (SPA / dynamic content)
   let scheduled = false;

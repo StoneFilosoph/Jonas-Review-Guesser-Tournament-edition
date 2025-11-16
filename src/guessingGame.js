@@ -1,28 +1,30 @@
 (function (root) {
   const ns = (root.ReviewGuesser = root.ReviewGuesser || {});
 
-  const isSteamAppPage = ns.isSteamAppPage;
-  const getCurrentSteamAppId = ns.getCurrentSteamAppId;
-  const getSteamReviewsContainer = ns.getSteamReviewsContainer;
-  const hideAllSteamReviewCounts = ns.hideAllSteamReviewCounts;
-  const waitForAnyReviewCount = ns.waitForAnyReviewCount;
-  const formatNum = ns.formatNum;
+	const isSteamAppPage = ns.isSteamAppPage;
+	const getCurrentSteamAppId = ns.getCurrentSteamAppId;
+	const getSteamReviewsContainer = ns.getSteamReviewsContainer;
+	const hideAllSteamReviewCounts = ns.hideAllSteamReviewCounts;
+	const waitForAnyReviewCount = ns.waitForAnyReviewCount;
+	const formatNum = ns.formatNum;
+	const getRNG = ns.getRNG;
 
-  function buildGuessSet(trueCount) {
-    const MIN_ANSWERS = 6;
-    const CAP = 200_000_000_000;
+	function buildGuessSet(trueCount) {
+		const MIN_ANSWERS = 6;
+		const CAP = 200_000_000_000;
 
-    // Normalise the true answer and cap it
-    const TC = Math.max(
-      0,
-      Math.min(CAP, Math.trunc(Number(trueCount) || 0))
-    );
+		// Normalise the true answer and cap it
+		const TC = Math.max(
+			0,
+			Math.min(CAP, Math.trunc(Number(trueCount) || 0))
+		);
 
-    const answers = new Set();
-    answers.add(TC);
+		const answers = new Set();
+		answers.add(TC);
 
-    const randInt = (min, max) =>
-      Math.floor(Math.random() * (max - min + 1)) + min;
+		// Use seeded RNG instead of Math.random()
+		const rng = getRNG();
+		const randInt = (min, max) => rng.randInt(min, max);
 
     // Random minimum step between answers when going upwards (40–60)
     const MIN_STEP_INCREASE = randInt(40, 60);
@@ -133,8 +135,8 @@
         if (values[i] < minVal) minVal = values[i];
       }
 
-      if (minVal !== TC && Math.random() < 0.5 && minVal < 20) {
-        const candidates = Math.random() < 0.5 ? [0, 1] : [1, 0];
+		if (minVal !== TC && rng.next() < 0.5 && minVal < 20) {
+			const candidates = rng.next() < 0.5 ? [0, 1] : [1, 0];
 
         for (const val of candidates) {
           // If replacing with the same value, no point; skip
@@ -152,18 +154,16 @@
       }
     }
 
-    //
-    // 5) Convert to array and shuffle so the correct answer isn’t in a fixed spot.
-    //
-    const picks = Array.from(answers);
+	//
+	// 5) Convert to array and shuffle so the correct answer isn't in a fixed spot.
+	//
+	const picks = Array.from(answers);
 
-    for (let i = picks.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [picks[i], picks[j]] = [picks[j], picks[i]];
-    }
+	// Use seeded shuffle
+	rng.shuffle(picks);
 
-    return picks;
-  }
+	return picks;
+}
 
 
 

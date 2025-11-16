@@ -67,17 +67,18 @@
     return loadCsvIds("data/released_appids.csv");
   }
 
-  /**
-   * Helper to pick a random element from an array of app IDs.
-   *
-   * @param {number[]} ids
-   * @returns {number|null}
-   */
-  function pickRandomId(ids) {
-    if (!ids || !ids.length) return null;
-    const idx = Math.floor(Math.random() * ids.length);
-    return ids[idx];
-  }
+	/**
+	 * Helper to pick a random element from an array of app IDs.
+	 * Uses seeded RNG for deterministic selection.
+	 *
+	 * @param {number[]} ids
+	 * @returns {number|null}
+	 */
+	function pickRandomId(ids) {
+		if (!ids || !ids.length) return null;
+		const rng = ns.getRNG();
+		return rng.pick(ids);
+	}
 
   /**
    * "Pure Random" strategy: pick from the global released_appids list.
@@ -89,81 +90,115 @@
     return pickRandomId(ids);
   }
 
-  /**
-   * "Smart Random" strategy:
-   *   - pick a random batch CSV (Batch_1..Batch_6)
-   *   - load IDs from that file
-   *   - pick a random app id from that batch
-   *   - if anything goes wrong / empty → fall back to Pure Random
-   *
-   * @returns {Promise<number|null>}
-   */
-  async function getSmartRandomAppId() {
-    if (!BATCH_FILES.length) return getPureRandomAppId();
+	/**
+	 * "Smart Random" strategy:
+	 *   - pick a random batch CSV (Batch_1..Batch_6)
+	 *   - load IDs from that file
+	 *   - pick a random app id from that batch
+	 *   - if anything goes wrong / empty → fall back to Pure Random
+	 *
+	 * @returns {Promise<number|null>}
+	 */
+	async function getSmartRandomAppId() {
+		if (!BATCH_FILES.length) return getPureRandomAppId();
 
-    const file =
-      BATCH_FILES[Math.floor(Math.random() * BATCH_FILES.length)];
-    const ids = await loadCsvIds(file);
-    const id = pickRandomId(ids);
+		// Use seeded RNG for batch selection
+		const rng = ns.getRNG();
+		const file = rng.pick(BATCH_FILES);
+		const ids = await loadCsvIds(file);
+		const id = pickRandomId(ids);
 
-    if (id != null) return id;
+		if (id != null) return id;
 
-    // Fallback to Pure Random if this batch is empty or failed
-    return getPureRandomAppId();
-  }
+		// Fallback to Pure Random if this batch is empty or failed
+		return getPureRandomAppId();
+	}
 
-  /**
-   * Resolve a random app id based on mode ("pure" | "smart"),
-   * and navigate to that app on the Steam store.
-   *
-   * @param {"pure"|"smart"} mode
-   */
-  async function navigateToRandomApp(mode) {
-    let appid = null;
+	/**
+	 * Resolve a random app id based on mode ("pure" | "smart"),
+	 * and navigate to that app on the Steam store.
+	 *
+	 * @param {"pure"|"smart"} mode
+	 */
+	async function navigateToRandomApp(mode) {
+		// Check if game limit reached
+		if (ns.isGameLimitReached && ns.isGameLimitReached()) {
+			alert('Game limit reached! Reset the counter or start a new seed to continue.');
+			return;
+		}
 
-    if (mode === "smart") {
-      appid = await getSmartRandomAppId();
-    } else {
-      appid = await getPureRandomAppId();
-    }
+		let appid = null;
 
-    if (!appid) {
-      // Fallback: Dota 2, in case everything fails
-      appid = 570;
-    }
+		if (mode === "smart") {
+			appid = await getSmartRandomAppId();
+		} else {
+			appid = await getPureRandomAppId();
+		}
 
-    window.location.assign(
-      `https://store.steampowered.com/app/${appid}/`
-    );
-  }
+		if (!appid) {
+			// Fallback: Dota 2, in case everything fails
+			appid = 570;
+		}
 
-  /**
-   * Create a "Next Game" button with the given label and strategy.
-   *
-   * @param {string} label - Button text ("Pure Random" / "Smart Random")
-   * @param {"pure"|"smart"} mode
-   * @returns {HTMLAnchorElement}
-   */
-  function makeNextGameButton(label, mode) {
-    const a = document.createElement("a");
-    a.className = "btnv6_blue_hoverfade btn_medium ext-next-game";
-    a.href = "#";
+		// Increment counter before navigating
+		if (ns.incrementGameCounter) {
+			ns.incrementGameCounter();
+		}
 
-    const span = document.createElement("span");
-    span.textContent = label;
-    a.appendChild(span);
+		window.location.assign(
+			`https://store.steampowered.com/app/${appid}/`
+		);
+	}
 
-    a.addEventListener(
-      "click",
-      (e) => {
-        e.preventDefault();
-        navigateToRandomApp(mode);
-      },
-      { passive: false }
-    );
+	/**
+	 * Create a "Next Game" button with the given label and strategy.
+	 *
+	 * @param {string} label - Button text ("Pure Random" / "Smart Random")
+	 * @param {"pure"|"smart"} mode
+	 * @returns {HTMLAnchorElement}
+	 */
+	function makeNextGameButton(label, mode) {
+		const a = document.createElement("a");
+		a.className = "btnv6_blue_hoverfade btn_medium ext-next-game";
+		a.href = "#";
+		a.dataset.mode = mode;
 
-    return a;
-  }
+		const span = document.createElement("span");
+		span.textContent = label;
+		a.appendChild(span);
+
+		// Update button state based on limit
+		const updateButtonState = () => {
+			if (ns.isGameLimitReached && ns.isGameLimitReached()) {
+				a.classList.add('ext-disabled');
+				a.setAttribute('aria-disabled', 'true');
+				span.textContent = label + ' (Limit Reached)';
+			} else {
+				a.classList.remove('ext-disabled');
+				a.removeAttribute('aria-disabled');
+				span.textContent = label;
+			}
+		};
+
+		updateButtonState();
+
+		// Listen for game count changes
+		window.addEventListener('ext:gamecountchanged', updateButtonState);
+		window.addEventListener('ext:seedchanged', updateButtonState);
+
+		a.addEventListener(
+			"click",
+			(e) => {
+				e.preventDefault();
+				if (!a.classList.contains('ext-disabled')) {
+					navigateToRandomApp(mode);
+				}
+			},
+			{ passive: false }
+		);
+
+		return a;
+	}
 
   // ---------------------------------------------------------------------------
   // Oops / region-locked page: header button(s)
