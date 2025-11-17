@@ -7,7 +7,7 @@
 ### This version 1.0.0 is complete AI slop 
 
 - Adds ability to generate and share seeds, so you should be able to play with your friends or create Tournaments. 
-
+- Added experimental NSFW filter (immidiatelly skips game without affecting counter of games)
 - Probably I'll fix bugs, but most likely not, see updates. 
 
 ## Overview
