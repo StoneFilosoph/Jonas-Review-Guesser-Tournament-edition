@@ -10,6 +10,8 @@
 	const setMaxGames = ns.setMaxGames;
 	const getGameMode = ns.getGameMode;
 	const setGameMode = ns.setGameMode;
+	const getNSFWFilterEnabled = ns.getNSFWFilterEnabled;
+	const setNSFWFilterEnabled = ns.setNSFWFilterEnabled;
 
 	/**
 	 * Save current UI state to preserve user input during page updates
@@ -146,6 +148,7 @@
 		const gameCount = getGameCounter ? getGameCounter() : 0;
 		const maxGames = getMaxGames ? getMaxGames() : null;
 		const gameMode = getGameMode ? getGameMode() : null;
+		const nsfwFilter = getNSFWFilterEnabled ? getNSFWFilterEnabled() : false;
 		
 		// Use draft seed if available, otherwise current seed
 		const displaySeed = draftSeed || currentSeed;
@@ -176,6 +179,14 @@
 					<option value="pure" ${gameMode === 'pure' ? 'selected' : ''}>Raw only</option>
 					<option value="smart" ${gameMode === 'smart' ? 'selected' : ''}>Balanced only</option>
 				</select>
+				<label class="ext-seed-nsfw-toggle" title="Experimental NSFW tag filter">
+					<input 
+						type="checkbox" 
+						class="ext-seed-nsfw-checkbox"
+						${nsfwFilter ? 'checked' : ''}
+					/>
+					<span>Filter NSFW tags (experimental)</span>
+				</label>
 				<button type="button" class="ext-seed-btn ext-seed-apply" title="Apply seed">
 					Apply
 				</button>
@@ -213,6 +224,7 @@
 		const copyBtn = seedUI.querySelector('.ext-seed-copy');
 		const shareBtn = seedUI.querySelector('.ext-seed-share');
 		const resetBtn = seedUI.querySelector('.ext-seed-reset');
+		const nsfwCheckbox = seedUI.querySelector('.ext-seed-nsfw-checkbox');
 
 		// Save draft state when user types in seed input
 		input.addEventListener('input', saveDraftState);
@@ -251,6 +263,22 @@
 			updateGameMode();
 			showFeedback(seedUI, 'Game mode updated!');
 		});
+
+		// NSFW filter toggle (experimental)
+		if (nsfwCheckbox) {
+			nsfwCheckbox.addEventListener('change', () => {
+				const enabled = nsfwCheckbox.checked;
+				if (setNSFWFilterEnabled) {
+					setNSFWFilterEnabled(enabled);
+				}
+				showFeedback(
+					seedUI,
+					enabled
+						? 'NSFW filter enabled (experimental)'
+						: 'NSFW filter disabled'
+				);
+			});
+		}
 
 		// Enter key in input
 		input.addEventListener('keypress', (e) => {

@@ -63,6 +63,7 @@
 	let gameCounter = 0;
 	let maxGames = null; // null = unlimited
 	let gameMode = null; // null = both modes, "pure" = raw only, "smart" = balanced only
+	let nsfwFilterEnabled = false; // experimental NSFW tag filtering
 
 	/**
 	 * Hash a string to a 32-bit number for use as seed
@@ -165,6 +166,10 @@
 			localStorage.setItem('reviewguesser:maxgames', gameLimit === null ? '' : String(gameLimit));
 			localStorage.setItem('reviewguesser:gamecount', '0');
 			localStorage.setItem('reviewguesser:gamemode', gameMode === null ? '' : String(gameMode));
+			// Track how many times we've actually navigated (used for RNG restore).
+			// This never gets decremented when NSFW pages are auto-skipped so
+			// RNG state stays in sync with real navigation history.
+			localStorage.setItem('reviewguesser:navcount', '0');
 		} catch (e) {
 			console.warn('[ext] Failed to save seed to localStorage', e);
 		}
@@ -196,12 +201,15 @@
 			let savedMaxGames = null;
 			let savedGameCount = 0;
 			let savedGameMode = null;
+			let savedNavCount = null;
 			
 			try {
 				savedSeed = localStorage.getItem('reviewguesser:seed');
 				const maxGamesStr = localStorage.getItem('reviewguesser:maxgames');
 				const gameCountStr = localStorage.getItem('reviewguesser:gamecount');
 				const gameModeStr = localStorage.getItem('reviewguesser:gamemode');
+				const nsfwFilterStr = localStorage.getItem('reviewguesser:nsfwfilter');
+				const navCountStr = localStorage.getItem('reviewguesser:navcount');
 				
 				if (maxGamesStr && maxGamesStr !== '') {
 					savedMaxGames = parseInt(maxGamesStr, 10);
@@ -211,6 +219,19 @@
 				}
 				if (gameModeStr && gameModeStr !== '') {
 					savedGameMode = gameModeStr;
+				}
+
+				if (nsfwFilterStr === '1') {
+					nsfwFilterEnabled = true;
+				} else if (nsfwFilterStr === '0') {
+					nsfwFilterEnabled = false;
+				}
+
+				if (navCountStr && navCountStr !== '') {
+					const parsedNav = parseInt(navCountStr, 10);
+					if (Number.isFinite(parsedNav) && parsedNav >= 0) {
+						savedNavCount = parsedNav;
+					}
 				}
 			} catch (e) {
 				// Ignore
@@ -230,12 +251,17 @@
 				maxGames = savedMaxGames;
 				gameCounter = savedGameCount;
 				gameMode = savedGameMode;
-				
-				// CRITICAL FIX: Advance RNG state based on game counter
-				// This ensures each game gets different random values
-				// We advance the RNG by calling next() multiple times
-				// Use a multiplier to ensure sufficient state advancement
-				for (let i = 0; i < savedGameCount * 10; i++) {
+
+				// CRITICAL FIX: Advance RNG state based on how many times we've
+				// actually navigated (navcount), not the visible game counter.
+				// This keeps RNG progression correct even if we "undo" a game
+				// in the counter when auto-skipping NSFW pages.
+				const restoreCount =
+					savedNavCount !== null && savedNavCount !== undefined
+						? savedNavCount
+						: savedGameCount;
+
+				for (let i = 0; i < restoreCount * 10; i++) {
 					currentRNG.next();
 				}
 			} else {
@@ -263,11 +289,49 @@
 		gameCounter++;
 		try {
 			localStorage.setItem('reviewguesser:gamecount', String(gameCounter));
+
+			// Increase navigation count used for RNG restoration.
+			let navCount = 0;
+			const navStr = localStorage.getItem('reviewguesser:navcount');
+			if (navStr && navStr !== '') {
+				const parsed = parseInt(navStr, 10);
+				if (Number.isFinite(parsed) && parsed >= 0) {
+					navCount = parsed;
+				}
+			}
+			navCount++;
+			localStorage.setItem('reviewguesser:navcount', String(navCount));
 		} catch (e) {
 			console.warn('[ext] Failed to save game count', e);
 		}
 
 		// Dispatch event so UI can update
+		window.dispatchEvent(new CustomEvent('ext:gamecountchanged', {
+			detail: { gameCount: gameCounter, maxGames: maxGames }
+		}));
+
+		return gameCounter;
+	}
+
+	/**
+	 * Decrement game counter by 1 (used when auto-skipping NSFW pages).
+	 * Does nothing if the counter is already 0.
+	 *
+	 * @returns {number} New game count
+	 */
+	function decrementGameCounter() {
+		if (gameCounter <= 0) {
+			return gameCounter;
+		}
+
+		gameCounter--;
+
+		try {
+            localStorage.setItem('reviewguesser:gamecount', String(gameCounter));
+		} catch (e) {
+			console.warn('[ext] Failed to save game count', e);
+		}
+
 		window.dispatchEvent(new CustomEvent('ext:gamecountchanged', {
 			detail: { gameCount: gameCounter, maxGames: maxGames }
 		}));
@@ -361,6 +425,32 @@
 		}));
 	}
 
+	/**
+	 * Get whether NSFW tag filtering is enabled.
+	 * @returns {boolean}
+	 */
+	function getNSFWFilterEnabled() {
+		return nsfwFilterEnabled;
+	}
+
+	/**
+	 * Enable or disable NSFW tag filtering (experimental).
+	 * @param {boolean} enabled
+	 */
+	function setNSFWFilterEnabled(enabled) {
+		nsfwFilterEnabled = !!enabled;
+
+		try {
+			localStorage.setItem('reviewguesser:nsfwfilter', nsfwFilterEnabled ? '1' : '0');
+		} catch (e) {
+			console.warn('[ext] Failed to save NSFW filter flag', e);
+		}
+
+		window.dispatchEvent(new CustomEvent('ext:nsfwfilterchanged', {
+			detail: { enabled: nsfwFilterEnabled }
+		}));
+	}
+
 	// Expose on namespace
 	ns.SeededRNG = SeededRNG;
 	ns.setSeed = setSeed;
@@ -369,6 +459,7 @@
 	ns.resetSeed = resetSeed;
 	ns.hashString = hashString;
 	ns.incrementGameCounter = incrementGameCounter;
+	ns.decrementGameCounter = decrementGameCounter;
 	ns.getGameCounter = getGameCounter;
 	ns.getMaxGames = getMaxGames;
 	ns.isGameLimitReached = isGameLimitReached;
@@ -377,5 +468,7 @@
 	ns.getGameMode = getGameMode;
 	ns.setGameMode = setGameMode;
 	ns.parseSeedWithLimit = parseSeedWithLimit;
+	ns.getNSFWFilterEnabled = getNSFWFilterEnabled;
+	ns.setNSFWFilterEnabled = setNSFWFilterEnabled;
 })(window);
 

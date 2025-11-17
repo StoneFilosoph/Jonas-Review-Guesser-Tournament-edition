@@ -8,6 +8,11 @@
 			window.__extSeedInitialized = true;
 		}
 
+		// Ensure RNG / seed state (including NSFW filter flag) is loaded
+		if (ns.getRNG) {
+			ns.getRNG();
+		}
+
 		if (ns.hideAllSteamReviewCounts) {
 			ns.hideAllSteamReviewCounts();
 		}
@@ -21,6 +26,7 @@
 		ns.installNextGameButton && ns.installNextGameButton();
 		ns.injectSeedUI && ns.injectSeedUI();
 		ns.injectSteamGuessingGame && ns.injectSteamGuessingGame();
+		ns.maybeAutoSkipNSFWPage && ns.maybeAutoSkipNSFWPage();
 	}
 
 	// Initial run

@@ -72,8 +72,86 @@
     return s.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   }
 
+	/**
+	 * Append a small debug entry to localStorage so logs survive navigation.
+	 * Keeps only the most recent N entries to avoid unbounded growth.
+	 *
+	 * @param {string} topic
+	 * @param {any} payload
+	 */
+	function debugLog(topic, payload) {
+		try {
+			if (typeof localStorage === "undefined") return;
+
+			const key = "reviewguesser:debugLog";
+			let list = [];
+
+			const raw = localStorage.getItem(key);
+			if (raw) {
+				try {
+					const parsed = JSON.parse(raw);
+					if (Array.isArray(parsed)) {
+						list = parsed;
+					}
+				} catch (e) {
+					list = [];
+				}
+			}
+
+			const entry = {
+				ts: Date.now(),
+				page: location.href,
+				topic: String(topic || ""),
+				data: payload,
+			};
+
+			list.push(entry);
+
+			// Keep only the most recent 200 entries
+			if (list.length > 200) {
+				list = list.slice(list.length - 200);
+			}
+
+			localStorage.setItem(key, JSON.stringify(list));
+		} catch (e) {
+			// Swallow any logging errors
+		}
+	}
+
+	/**
+	 * Read the stored debug log from localStorage.
+	 *
+	 * @returns {Array<any>}
+	 */
+	function getDebugLog() {
+		try {
+			if (typeof localStorage === "undefined") return [];
+			const raw = localStorage.getItem("reviewguesser:debugLog");
+			if (!raw) return [];
+			const parsed = JSON.parse(raw);
+			return Array.isArray(parsed) ? parsed : [];
+		} catch (e) {
+			return [];
+		}
+	}
+
+	/**
+	 * Clear the stored debug log.
+	 */
+	function clearDebugLog() {
+		try {
+			if (typeof localStorage === "undefined") return;
+			localStorage.removeItem("reviewguesser:debugLog");
+		} catch (e) {
+			// Ignore
+		}
+	}
+
   // Expose on namespace
   ns.normalizeSpaces = normalizeSpaces;
   ns.parseReviewCountRaw = parseReviewCountRaw;
   ns.formatNum = formatNum;
+	ns.debugLog = debugLog;
+	ns.getDebugLog = getDebugLog;
+	ns.clearDebugLog = clearDebugLog;
 })(window);
