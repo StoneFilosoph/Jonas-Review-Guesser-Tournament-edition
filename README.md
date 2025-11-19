@@ -4,12 +4,17 @@
 
 ![preview image](images/SeededUi.png)
 
-### This version 1.0.3 is complete AI slop but gets job done (I guess)
+### This version 1.0.4 is complete AI slop but gets job done (I guess)
 
 - Adds ability to generate and share seeds, so you should be able to play with your friends or create Tournaments. 
 - Added experimental NSFW filter (immidiatelly skips game without affecting counter of games)
 - Added Score counter
+- Added timer settings and timer ( -1 will enable "chill mode" without timer, any other positive number will set thas amout in sec per game )
+- When timer runs out you automatically swicth to the next game
 - Probably I'll fix bugs, but most likely not, see updates. 
+
+![preview image](images/timer.png)
+![preview image](images/timerSettings.png)
 
 ## Overview
 

@@ -9,6 +9,9 @@
 	const formatNum = ns.formatNum;
 	const getRNG = ns.getRNG;
 	const incrementCorrectCounter = ns.incrementCorrectCounter;
+	const getTimerDuration = ns.getTimerDuration;
+	const getGameMode = ns.getGameMode;
+	const getGameCounter = ns.getGameCounter;
 
 	function buildGuessSet(trueCount) {
 		const MIN_ANSWERS = 6;
@@ -264,6 +267,69 @@
         wrap.appendChild(b);
       });
 
+      // Timer logic
+      const timerDuration = getTimerDuration ? getTimerDuration() : -1;
+      // Only start timer if game counter > 0 (meaning we have started playing via "Next Game")
+      const gameCounter = getGameCounter ? getGameCounter() : 0;
+      let timerInterval = null;
+
+      if (timerDuration > 0 && gameCounter > 0) {
+        const timerEl = document.createElement("div");
+        timerEl.className = "ext-timer";
+        timerEl.style.fontSize = "24px";
+        timerEl.style.marginBottom = "10px";
+        timerEl.style.fontWeight = "bold";
+        timerEl.style.textAlign = "center";
+        timerEl.style.gridColumn = "1 / -1";
+        timerEl.style.width = "100%";
+        
+        let timeLeft = timerDuration;
+        timerEl.textContent = `⏱️ ${timeLeft}s`;
+        wrap.prepend(timerEl);
+
+        timerInterval = setInterval(() => {
+          if (wrap.dataset.locked === "1") {
+            clearInterval(timerInterval);
+            return;
+          }
+
+          timeLeft--;
+          timerEl.textContent = `⏱️ ${timeLeft}s`;
+          
+          if (timeLeft < 13) {
+            timerEl.style.color = "#ff4c4c"; // Brighter red for visibility
+          }
+
+          if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            timerEl.textContent = "⏱️ Time's Up!";
+            
+            // Mark as locked so user can't guess anymore
+            wrap.dataset.locked = "1";
+            
+            // Disable buttons
+            btns.forEach((btn) => {
+               btn.disabled = true;
+               btn.setAttribute("aria-disabled", "true");
+               btn.style.pointerEvents = "none";
+            });
+
+            // Automatically go to next game
+            setTimeout(() => {
+               // Access namespace dynamically to ensure it's available
+               if (ns.navigateToRandomApp) {
+                 const mode = (getGameMode && getGameMode()) || 'smart';
+                 ns.navigateToRandomApp(mode);
+               } else {
+                 console.error("[ReviewGuesser] navigateToRandomApp not found!");
+                 // Fallback reload if navigation is missing (shouldn't happen)
+                 window.location.reload();
+               }
+            }, 1000);
+          }
+        }, 1000);
+      }
+
       const note = document.createElement("div");
       note.className = "ext-subtle";
       note.textContent =
@@ -274,6 +340,8 @@
       const mark = (picked) => {
         if (wrap.dataset.locked === "1") return;
         wrap.dataset.locked = "1";
+
+        if (timerInterval) clearInterval(timerInterval);
 
         const isCorrect = picked === correct;
         if (isCorrect && typeof incrementCorrectCounter === "function") {

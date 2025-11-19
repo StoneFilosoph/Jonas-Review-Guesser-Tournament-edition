@@ -737,4 +737,5 @@
   ns.installNextGameButtonOnOops = installNextGameButtonOnOops;
   ns.installNextGameButton = installNextGameButton;
 	ns.maybeAutoSkipNSFWPage = maybeAutoSkipNSFWPage;
+	ns.navigateToRandomApp = navigateToRandomApp;
 })(window);
