@@ -12,6 +12,8 @@
 	const setGameMode = ns.setGameMode;
 	const getNSFWFilterEnabled = ns.getNSFWFilterEnabled;
 	const setNSFWFilterEnabled = ns.setNSFWFilterEnabled;
+	const getCorrectCounter = ns.getCorrectCounter;
+	const resetCorrectCounter = ns.resetCorrectCounter;
 
 	/**
 	 * Save current UI state to preserve user input during page updates
@@ -147,6 +149,7 @@
 		const currentSeed = getCurrentSeed() || 'Loading...';
 		const gameCount = getGameCounter ? getGameCounter() : 0;
 		const maxGames = getMaxGames ? getMaxGames() : null;
+		const correctCount = getCorrectCounter ? getCorrectCounter() : 0;
 		const gameMode = getGameMode ? getGameMode() : null;
 		const nsfwFilter = getNSFWFilterEnabled ? getNSFWFilterEnabled() : false;
 		
@@ -156,6 +159,10 @@
 		const modeDisplay = gameMode === 'pure' ? 'Raw' : gameMode === 'smart' ? 'Balanced' : 'Both';
 
 		seedUI.innerHTML = `
+			<div class="ext-score-banner">
+				<span class="ext-score-label">Score:</span>
+				<span class="ext-score-current">${correctCount}</span><span class="ext-score-separator">/</span><span class="ext-score-limit">${limitDisplay}</span>
+			</div>
 			<div class="ext-seed-controls">
 				<div class="ext-seed-label">
 					<span>🎲 Seed:</span>
@@ -330,13 +337,17 @@
 		resetBtn.addEventListener('click', () => {
 			if (resetGameCounter) {
 				resetGameCounter();
-				updateGameCounter();
-				showFeedback(seedUI, 'Game counter reset to 0!');
 			}
+			if (resetCorrectCounter) {
+				resetCorrectCounter();
+			}
+			updateGameCounter();
+			showFeedback(seedUI, 'Game counter and score reset to 0!');
 		});
 
-		// Listen for game count changes
+		// Listen for game count and score changes
 		window.addEventListener('ext:gamecountchanged', updateGameCounter);
+		window.addEventListener('ext:scorechanged', updateGameCounter);
 		window.addEventListener('ext:seedchanged', () => {
 			updateGameCounter();
 			updateSeedDisplay();
@@ -417,6 +428,8 @@
 
 		const countEl = document.querySelector('.ext-game-count');
 		const limitEl = document.querySelector('.ext-game-limit');
+		const scoreCurrentEl = document.querySelector('.ext-score-current');
+		const scoreLimitEl = document.querySelector('.ext-score-limit');
 		
 		if (countEl && getGameCounter) {
 			countEl.textContent = getGameCounter();
@@ -425,6 +438,15 @@
 		if (limitEl && getMaxGames) {
 			const max = getMaxGames();
 			limitEl.textContent = max === null ? 'Unlimited' : max;
+		}
+
+		if (scoreCurrentEl && getCorrectCounter) {
+			scoreCurrentEl.textContent = getCorrectCounter();
+		}
+
+		if (scoreLimitEl && getMaxGames) {
+			const max = getMaxGames();
+			scoreLimitEl.textContent = max === null ? 'Unlimited' : max;
 		}
 
 		// Update limit selector

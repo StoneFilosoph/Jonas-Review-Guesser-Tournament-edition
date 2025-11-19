@@ -61,6 +61,7 @@
 	let currentSeed = null;
 	let currentRNG = null;
 	let gameCounter = 0;
+	let correctCounter = 0; // number of correctly answered games
 	let maxGames = null; // null = unlimited
 	let gameMode = null; // null = both modes, "pure" = raw only, "smart" = balanced only
 	let nsfwFilterEnabled = false; // experimental NSFW tag filtering
@@ -153,7 +154,8 @@
 		currentSeed = seedString;
 		currentRNG = new SeededRNG(seedNumber);
 		maxGames = gameLimit;
-		gameCounter = 0; // Reset counter when seed changes
+		gameCounter = 0; // Reset counters when seed changes
+		correctCounter = 0;
 		
 		// Set game mode if provided
 		if (mode !== undefined) {
@@ -165,6 +167,7 @@
 			localStorage.setItem('reviewguesser:seed', seedString);
 			localStorage.setItem('reviewguesser:maxgames', gameLimit === null ? '' : String(gameLimit));
 			localStorage.setItem('reviewguesser:gamecount', '0');
+			localStorage.setItem('reviewguesser:correctcount', '0');
 			localStorage.setItem('reviewguesser:gamemode', gameMode === null ? '' : String(gameMode));
 			// Track how many times we've actually navigated (used for RNG restore).
 			// This never gets decremented when NSFW pages are auto-skipped so
@@ -200,6 +203,7 @@
 			let savedSeed = null;
 			let savedMaxGames = null;
 			let savedGameCount = 0;
+			let savedCorrectCount = 0;
 			let savedGameMode = null;
 			let savedNavCount = null;
 			
@@ -208,6 +212,7 @@
 				const maxGamesStr = localStorage.getItem('reviewguesser:maxgames');
 				const gameCountStr = localStorage.getItem('reviewguesser:gamecount');
 				const gameModeStr = localStorage.getItem('reviewguesser:gamemode');
+				const correctCountStr = localStorage.getItem('reviewguesser:correctcount');
 				const nsfwFilterStr = localStorage.getItem('reviewguesser:nsfwfilter');
 				const navCountStr = localStorage.getItem('reviewguesser:navcount');
 				
@@ -219,6 +224,9 @@
 				}
 				if (gameModeStr && gameModeStr !== '') {
 					savedGameMode = gameModeStr;
+				}
+				if (correctCountStr) {
+					savedCorrectCount = parseInt(correctCountStr, 10) || 0;
 				}
 
 				if (nsfwFilterStr === '1') {
@@ -250,6 +258,7 @@
 				currentRNG = new SeededRNG(seedNumber);
 				maxGames = savedMaxGames;
 				gameCounter = savedGameCount;
+				correctCounter = savedCorrectCount;
 				gameMode = savedGameMode;
 
 				// CRITICAL FIX: Advance RNG state based on how many times we've
@@ -314,6 +323,27 @@
 	}
 
 	/**
+	 * Increment correct answer counter (call when answering correctly)
+	 * @returns {number} New correct count
+	 */
+	function incrementCorrectCounter() {
+		correctCounter++;
+
+		try {
+			localStorage.setItem('reviewguesser:correctcount', String(correctCounter));
+		} catch (e) {
+			console.warn('[ext] Failed to save correct count', e);
+		}
+
+		// Separate event so UI can react specifically to score changes
+		window.dispatchEvent(new CustomEvent('ext:scorechanged', {
+			detail: { correctCount: correctCounter, maxGames: maxGames }
+		}));
+
+		return correctCounter;
+	}
+
+	/**
 	 * Decrement game counter by 1 (used when auto-skipping NSFW pages).
 	 * Does nothing if the counter is already 0.
 	 *
@@ -348,6 +378,14 @@
 	}
 
 	/**
+	 * Get current correct-answer counter
+	 * @returns {number}
+	 */
+	function getCorrectCounter() {
+		return correctCounter;
+	}
+
+	/**
 	 * Get max games limit
 	 * @returns {number|null} null means unlimited
 	 */
@@ -370,14 +408,20 @@
 	 */
 	function resetGameCounter() {
 		gameCounter = 0;
+		correctCounter = 0;
 		try {
 			localStorage.setItem('reviewguesser:gamecount', '0');
+			localStorage.setItem('reviewguesser:correctcount', '0');
 		} catch (e) {
 			console.warn('[ext] Failed to reset game count', e);
 		}
 
 		window.dispatchEvent(new CustomEvent('ext:gamecountchanged', {
 			detail: { gameCount: 0, maxGames: maxGames }
+		}));
+
+		window.dispatchEvent(new CustomEvent('ext:scorechanged', {
+			detail: { correctCount: 0, maxGames: maxGames }
 		}));
 
 		return 0;
@@ -459,8 +503,10 @@
 	ns.resetSeed = resetSeed;
 	ns.hashString = hashString;
 	ns.incrementGameCounter = incrementGameCounter;
+	ns.incrementCorrectCounter = incrementCorrectCounter;
 	ns.decrementGameCounter = decrementGameCounter;
 	ns.getGameCounter = getGameCounter;
+	ns.getCorrectCounter = getCorrectCounter;
 	ns.getMaxGames = getMaxGames;
 	ns.isGameLimitReached = isGameLimitReached;
 	ns.resetGameCounter = resetGameCounter;

@@ -8,6 +8,7 @@
 	const waitForAnyReviewCount = ns.waitForAnyReviewCount;
 	const formatNum = ns.formatNum;
 	const getRNG = ns.getRNG;
+	const incrementCorrectCounter = ns.incrementCorrectCounter;
 
 	function buildGuessSet(trueCount) {
 		const MIN_ANSWERS = 6;
@@ -273,6 +274,12 @@
       const mark = (picked) => {
         if (wrap.dataset.locked === "1") return;
         wrap.dataset.locked = "1";
+
+        const isCorrect = picked === correct;
+        if (isCorrect && typeof incrementCorrectCounter === "function") {
+          incrementCorrectCounter();
+        }
+
         btns.forEach((btn) => {
           const val = parseInt(btn.dataset.value, 10);
           if (val === correct) btn.classList.add("correct");

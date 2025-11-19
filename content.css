@@ -107,6 +107,30 @@
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
+.ext-score-banner {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	font-size: 20px;
+	font-weight: 700;
+	color: #fff;
+	margin-bottom: 8px;
+}
+
+.ext-score-label {
+	opacity: 0.9;
+}
+
+.ext-score-current {
+	color: #6fe26f;
+	font-size: 22px;
+}
+
+.ext-score-separator,
+.ext-score-limit {
+	opacity: 0.9;
+}
+
 .ext-seed-controls {
 	display: flex;
 	align-items: center;
