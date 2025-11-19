@@ -14,6 +14,8 @@
 	const setNSFWFilterEnabled = ns.setNSFWFilterEnabled;
 	const getCorrectCounter = ns.getCorrectCounter;
 	const resetCorrectCounter = ns.resetCorrectCounter;
+	const getTimerDuration = ns.getTimerDuration;
+	const setTimerDuration = ns.setTimerDuration;
 
 	/**
 	 * Save current UI state to preserve user input during page updates
@@ -152,6 +154,7 @@
 		const correctCount = getCorrectCounter ? getCorrectCounter() : 0;
 		const gameMode = getGameMode ? getGameMode() : null;
 		const nsfwFilter = getNSFWFilterEnabled ? getNSFWFilterEnabled() : false;
+		const timerDuration = getTimerDuration ? getTimerDuration() : -1;
 		
 		// Use draft seed if available, otherwise current seed
 		const displaySeed = draftSeed || currentSeed;
@@ -186,6 +189,17 @@
 					<option value="pure" ${gameMode === 'pure' ? 'selected' : ''}>Raw only</option>
 					<option value="smart" ${gameMode === 'smart' ? 'selected' : ''}>Balanced only</option>
 				</select>
+				<div class="ext-seed-timer-config" title="Timer per round (seconds). -1 or empty for chill mode (no timer).">
+					<span>⏱️</span>
+					<input 
+						type="number" 
+						class="ext-seed-timer-input" 
+						value="${timerDuration === -1 ? '' : timerDuration}" 
+						placeholder="-1"
+						min="-1"
+						style="width: 50px;"
+					/>
+				</div>
 				<label class="ext-seed-nsfw-toggle" title="Experimental NSFW tag filter">
 					<input 
 						type="checkbox" 
@@ -232,6 +246,7 @@
 		const shareBtn = seedUI.querySelector('.ext-seed-share');
 		const resetBtn = seedUI.querySelector('.ext-seed-reset');
 		const nsfwCheckbox = seedUI.querySelector('.ext-seed-nsfw-checkbox');
+		const timerInput = seedUI.querySelector('.ext-seed-timer-input');
 
 		// Save draft state when user types in seed input
 		input.addEventListener('input', saveDraftState);
@@ -283,6 +298,26 @@
 					enabled
 						? 'NSFW filter enabled (experimental)'
 						: 'NSFW filter disabled'
+				);
+			});
+		}
+
+		// Timer input change
+		if (timerInput) {
+			timerInput.addEventListener('change', () => {
+				const val = timerInput.value.trim();
+				let seconds = -1;
+				if (val !== '') {
+					seconds = parseInt(val, 10);
+				}
+				if (setTimerDuration) {
+					setTimerDuration(seconds);
+				}
+				showFeedback(
+					seedUI,
+					seconds === -1
+						? 'Timer disabled (Chill Mode)'
+						: `Timer set to ${seconds} seconds per round`
 				);
 			});
 		}
@@ -351,7 +386,9 @@
 		window.addEventListener('ext:seedchanged', () => {
 			updateGameCounter();
 			updateSeedDisplay();
+			updateTimerDisplay();
 		});
+		window.addEventListener('ext:timerchanged', updateTimerDisplay);
 
 		// Start periodic auto-save to preserve user input during page updates
 		startAutoSave();
@@ -502,12 +539,29 @@
 	}
 
 	/**
+	 * Update timer display
+	 */
+	function updateTimerDisplay() {
+		// Ensure RNG is initialized (loads state from localStorage)
+		if (ns.getRNG) {
+			ns.getRNG();
+		}
+
+		const timerInput = document.querySelector('.ext-seed-timer-input');
+		if (timerInput && getTimerDuration) {
+			const duration = getTimerDuration();
+			timerInput.value = duration === -1 ? '' : duration;
+		}
+	}
+
+	/**
 	 * Update seed UI with current seed (for dynamic updates)
 	 */
 	function updateSeedUI() {
 		updateSeedDisplay();
 		updateGameCounter();
 		updateGameMode();
+		updateTimerDisplay();
 	}
 
 	/**

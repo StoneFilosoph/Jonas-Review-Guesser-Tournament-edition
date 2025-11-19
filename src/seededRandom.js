@@ -65,6 +65,7 @@
 	let maxGames = null; // null = unlimited
 	let gameMode = null; // null = both modes, "pure" = raw only, "smart" = balanced only
 	let nsfwFilterEnabled = false; // experimental NSFW tag filtering
+	let timerDuration = -1; // -1 = chill mode (no timer), otherwise seconds per round
 
 	/**
 	 * Hash a string to a 32-bit number for use as seed
@@ -214,6 +215,7 @@
 				const gameModeStr = localStorage.getItem('reviewguesser:gamemode');
 				const correctCountStr = localStorage.getItem('reviewguesser:correctcount');
 				const nsfwFilterStr = localStorage.getItem('reviewguesser:nsfwfilter');
+				const timerDurationStr = localStorage.getItem('reviewguesser:timerduration');
 				const navCountStr = localStorage.getItem('reviewguesser:navcount');
 				
 				if (maxGamesStr && maxGamesStr !== '') {
@@ -233,6 +235,13 @@
 					nsfwFilterEnabled = true;
 				} else if (nsfwFilterStr === '0') {
 					nsfwFilterEnabled = false;
+				}
+
+				if (timerDurationStr && timerDurationStr !== '') {
+					const parsedTimer = parseInt(timerDurationStr, 10);
+					if (Number.isFinite(parsedTimer)) {
+						timerDuration = parsedTimer;
+					}
 				}
 
 				if (navCountStr && navCountStr !== '') {
@@ -495,6 +504,35 @@
 		}));
 	}
 
+	/**
+	 * Get timer duration in seconds.
+	 * @returns {number} -1 for chill mode, otherwise seconds
+	 */
+	function getTimerDuration() {
+		return timerDuration;
+	}
+
+	/**
+	 * Set timer duration.
+	 * @param {number} seconds -1 for chill mode
+	 */
+	function setTimerDuration(seconds) {
+		timerDuration = parseInt(seconds, 10);
+		if (!Number.isFinite(timerDuration)) {
+			timerDuration = -1;
+		}
+
+		try {
+			localStorage.setItem('reviewguesser:timerduration', String(timerDuration));
+		} catch (e) {
+			console.warn('[ext] Failed to save timer duration', e);
+		}
+
+		window.dispatchEvent(new CustomEvent('ext:timerchanged', {
+			detail: { duration: timerDuration }
+		}));
+	}
+
 	// Expose on namespace
 	ns.SeededRNG = SeededRNG;
 	ns.setSeed = setSeed;
@@ -516,5 +554,7 @@
 	ns.parseSeedWithLimit = parseSeedWithLimit;
 	ns.getNSFWFilterEnabled = getNSFWFilterEnabled;
 	ns.setNSFWFilterEnabled = setNSFWFilterEnabled;
+	ns.getTimerDuration = getTimerDuration;
+	ns.setTimerDuration = setTimerDuration;
 })(window);
 
