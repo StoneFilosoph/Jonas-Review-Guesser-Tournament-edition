@@ -4,10 +4,11 @@
 
 ![preview image](images/SeededUi.png)
 
-### This version 1.0.2 is complete AI slop but gets job done (I guess)
+### This version 1.0.3 is complete AI slop but gets job done (I guess)
 
 - Adds ability to generate and share seeds, so you should be able to play with your friends or create Tournaments. 
 - Added experimental NSFW filter (immidiatelly skips game without affecting counter of games)
+- Added Score counter
 - Probably I'll fix bugs, but most likely not, see updates. 
 
 ## Overview
